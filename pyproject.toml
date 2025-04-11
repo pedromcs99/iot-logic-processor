@@ -1,8 +1,8 @@
 [tool.poetry]
-name = "prolink-cloud"
+name = "iot-logic-processor"
 version = "0.1.0"
 description = "Machine Data Ingestion Service with Celery & FastAPI"
-authors = ["Your Name <you@example.com>"]
+authors = ["Pedro Sousa pedromcs99@gmail.com"]
 package-mode = false
 
 [tool.poetry.dependencies]
