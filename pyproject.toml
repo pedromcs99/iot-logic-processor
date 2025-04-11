@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "prolink-cloud"
+version = "0.1.0"
+description = "Machine Data Ingestion Service with Celery & FastAPI"
+authors = ["Your Name <you@example.com>"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = "^0.78.0"
+uvicorn = "^0.17.6"
+celery = "^5.2.3"
+redis = "^4.3.1"
+pika = "^1.3.0"
+flower = "^1.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+

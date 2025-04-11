@@ -1,0 +1,157 @@
+# version: "3.8"
+
+# services:
+#   rabbitmq:
+#     image: "rabbitmq:management"
+#     container_name: rabbitmq
+#     ports:
+#       - "5672:5672"
+#       - "15672:15672"
+
+#   redis:
+#     image: "redis"
+#     container_name: redis
+#     ports:
+#       - "6379:6379"
+
+#   consumer:
+#     build: .
+#     container_name: consumer
+#     depends_on:
+#       - rabbitmq
+#       - redis
+#     environment:
+#       - RABBITMQ_HOST=rabbitmq
+#       - REDIS_HOST=redis
+
+#   api:
+#     build: .
+#     container_name: api
+#     ports:
+#       - "8001:8001"
+#     depends_on:
+#       - redis
+#     command:
+#       [
+#         "uvicorn",
+#         "app.api:app",
+#         "--host",
+#         "0.0.0.0",
+#         "--port",
+#         "8001",
+#         "--reload",
+#       ]
+
+#   worker_manager:
+#     build: .
+#     container_name: worker_manager
+#     depends_on:
+#       - redis
+#     command: ["python", "app/start_workers.py"]
+#     environment:
+#       - RABBITMQ_HOST=rabbitmq
+#       - REDIS_HOST=redis
+
+
+#   worker:
+#     build: .
+#     container_name: worker
+#     depends_on:
+#       - rabbitmq
+#       - redis
+#     command: ["sh", "-c", "celery -A app.tasks worker --loglevel=info -Q machine_A,machine_B,machine_C,machine_D,celery"]
+#     environment:
+#       - CELERY_BROKER_URL=pyamqp://guest@rabbitmq//
+#       - CELERY_RESULT_BACKEND=redis://redis:6379/1
+
+
+#   flower:
+#     image: "mher/flower"
+#     container_name: flower
+#     command: ["celery", "--broker=redis://redis:6379/0", "flower"]
+#     ports:
+#       - "5555:5555"
+#     depends_on:
+#       - redis
+#       - worker
+
+
+
+version: "3.8"
+
+services:
+  rabbitmq:
+    image: "rabbitmq:management"
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 5s
+      retries: 5
+      start_period: 20s
+      timeout: 5s
+
+  redis:
+    image: "redis"
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+
+  consumer:
+    build: .
+    container_name: consumer
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    command: ["python", "app/consumer.py"]
+
+  worker:
+    build: .
+    container_name: worker
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    command: ["celery", "-A", "app.tasks", "worker", "--loglevel=info", "-Q", "celery"]
+    environment:
+      - CELERY_BROKER_URL=pyamqp://guest@rabbitmq//
+      - CELERY_RESULT_BACKEND=rpc://
+
+  producer:
+    build: .
+    container_name: producer
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    command: ["python", "app/producer.py"]
+
+
+  flower:
+    image: "mher/flower"
+    container_name: flower
+    command: ["celery", "--broker=pyamqp://guest@rabbitmq//", "flower"]
+    ports:
+      - "5555:5555"
+    depends_on:
+      - worker
+
+
+  api:
+    build: .
+    container_name: api
+    ports:
+      - "8001:8001"
+    depends_on:
+      - redis
+    command:
+      [
+        "uvicorn",
+        "app.api:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8001",
+        "--reload",
+      ]
